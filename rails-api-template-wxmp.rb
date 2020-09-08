@@ -40,6 +40,10 @@ run 'rm -rf vendor'
 ########################################
 run 'rm app/views/layouts/application.html.erb'
 
+# Remove unnecessary folders from app
+run 'rm -rf app/helpers'
+run 'rm -rf app/javascript'
+
 # README
 ########################################
 markdown_file_content = <<~MARKDOWN
@@ -79,9 +83,11 @@ wx_mp_app_secret: [YOUR-APP-SECRET (provided by WECHAT)]
   # AFTER BUNDLE
   ########################################
   after_bundle do
+
     # DB
     ########################################
     rails_command 'db:drop db:create db:migrate'
+
     # User Model
     #######################################
     generate(:model, 'user', 'name', 'city', 'wechat', 'phone', 'email', 'gender', 'admin:boolean', 'wx_open_id', 'wx_session_key')
@@ -121,17 +127,25 @@ wx_mp_app_secret: [YOUR-APP-SECRET (provided by WECHAT)]
     end
     RUBY
     route user_routes
+
     # Controller
     # ########################################
     run 'rm -rf app/controllers'
     run 'mv rails-api-template-wxmp-resources-master/controllers app/controllers'
+
     # Services
     # ########################################
     run 'mv rails-api-template-wxmp-resources-master/services app/services'
+
     # Locales
     # ########################################
     run 'rm -rf config/locales'
     run 'mv rails-api-template-wxmp-resources-master/locales config/locales'
+
+    # Remove resources folder
+    ########################################
+    run 'rm -rf rails-api-template-wxmp-resources-master'
+
     # Git ignore
     ########################################
     gsub_file '.gitignore', '/.bundle', 'api/.bundle'
@@ -144,9 +158,11 @@ wx_mp_app_secret: [YOUR-APP-SECRET (provided by WECHAT)]
     *.swp
     .DS_Store
     TXT
+
     # Directories setup
     ########################################
     run 'mkdir ../api && mv ./* ../api && mv ../api . && mv .ruby-version api/.ruby-version'
+
     # Git
     ########################################
     git add: '.'
