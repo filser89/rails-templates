@@ -20,7 +20,6 @@ inject_into_file 'Gemfile', after: 'group :development, :test do' do
   RUBY
 end
 gsub_file 'Gemfile', "source 'https://rubygems.org'", "source 'https://gems.ruby-china.com'"
-gsub_file 'Gemfile.lock', "remote: https://rubygems.org/", "remote: https://gems.ruby-china.com/"
 gsub_file 'Gemfile', "gem 'webpacker', '~> 4.0'", ''
 gsub_file 'Gemfile', "gem 'turbolinks', '~> 5'", ''
 gsub_file 'Gemfile', "gem 'jbuilder', '~> 2.7'", ''
@@ -84,6 +83,10 @@ wx_mp_app_secret: [YOUR-APP-SECRET (provided by WECHAT)]
   # AFTER BUNDLE
   ########################################
   after_bundle do
+
+    # Gemfile.lock
+    ########################################
+    gsub_file 'Gemfile.lock', "remote: https://rubygems.org/", "remote: https://gems.ruby-china.com/"
 
     # DB
     ########################################
