@@ -44,6 +44,9 @@ run 'rm app/views/layouts/application.html.erb'
 run 'rm -rf app/helpers'
 run 'rm -rf app/javascript'
 
+# Clear Public directory
+########################################
+run 'rm public/*'
 # README
 ########################################
 markdown_file_content = <<~MARKDOWN
