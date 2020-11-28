@@ -1,4 +1,4 @@
-# Rails API Template for WeChat (WeiXin) MiniProgram
+# Rails API Template for WeChat (WeiXin) MiniProgram (no webpack)
 
 ### Generate your app with the following command:
 
