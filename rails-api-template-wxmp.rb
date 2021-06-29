@@ -5,6 +5,7 @@ inject_into_file 'Gemfile', before: 'group :development, :test do' do
   <<~RUBY
   gem 'autoprefixer-rails'
   gem 'sidekiq'
+  gem 'sidekiq-failures', '~> 1.0'
   gem 'redis'
   gem 'httparty' # HTTP requests, API calls
   gem 'jwt' #authentication
@@ -117,7 +118,7 @@ wx_mp_app_secret: [YOUR-APP-SECRET (provided by WECHAT)]
     end
     rails_command 'db:migrate'
     run 'rm -rf app/models/user.rb'
-    run 'curl -L https://github.com/filser89/rails-api-template-wxmp-resources/archive/master.zip > resources.zip'
+    run 'curl -L https://github.com/filser89/rails-wxmp-setup-resourses/archive/master.zip > resources.zip'
     run 'unzip resources.zip && rm resources.zip && mv rails-api-template-wxmp-resources-master/user.rb app/models/user.rb'
 
     # Routes

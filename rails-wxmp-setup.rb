@@ -22,6 +22,10 @@ inject_into_file 'Gemfile', before: 'group :development, :test do' do
 
   # background jobs processing
   gem 'sidekiq'
+  gem 'sidekiq-failures', '~> 1.0'
+
+  # authentication
+  gem 'jwt'
 
   # handle money
   gem 'money-rails', '~>1.12'
@@ -109,13 +113,30 @@ end
 # README
 ########################################
 markdown_file_content = <<-MARKDOWN
-Setup:
-  - Authentication with **devise**
-\s- Background jobs with **sidekiq**
-\s- API calls with **rest-client**
-\s- Handle money and currencies with **money-rails**. Default currency: ***CNY***
-\s- Model translations with **json_translate**. Locales: :en, :cn
-\s- Active Storage with **activestorage-aliyun**
+##Gems Setup:
+- Authentication with **devise**
+- Authentication with **jwt**
+- Background jobs with **sidekiq**
+- API calls with **rest-client**
+- Handle money and currencies with **money-rails**. Default currency: ***CNY***
+- Model translations with **json_translate**. Locales: :en, :cn
+- Active Storage with **activestorage-aliyun**
+## Credentials set-up
+#### In order to use this template set up the following values in config/credentials.yml.enc
+```yaml
+  wx_mp:
+    app_id: [YOUR-Mini-Program-APP-ID (provided by WECHAT)]
+    app_secret: [YOUR-Mini-Program-APP-SECRET (provided by WECHAT)]
+  aliyun_oss:
+    access_key_id: [YOUR-ALIYUN-KEY-ID]
+    access_key_secret: [YOUR-ALIYUN-KEY-SECRET]
+    bucket_name: [YOUR-ALIYUN-BUCKET-NAME (set by you when creating a bucket)]
+    endpoint: https://oss-cn-shanghai.aliyuncs.com (depends on your bucket location)
+  api_key: [YOUR-API-KEY]
+  jwt:
+    token_secret_key: [YOUR-JWT-TOKEN]
+    expiration: TOKEN-EXPIRSTION-IN-SECONDS (Recommended: 900)]
+  ```
 MARKDOWN
 file 'README.md', markdown_file_content, force: true
 
@@ -135,6 +156,15 @@ environment generators
 # AFTER BUNDLE
 ########################################
 after_bundle do
+  # Get resources
+  ########################################
+  run 'curl -L https://github.com/filser89/rails-wxmp-setup-resourses/archive/master.zip > resources.zip'
+  run 'unzip resources.zip && rm resources.zip && mv rails-wxmp-setup-resourses-master resources'
+
+  # Add services
+  ########################################
+  run 'mv resources/services app/services'
+
   # Generators: db + simple form + pages controller
   ########################################
   rails_command 'db:drop db:create db:migrate'
@@ -142,19 +172,31 @@ after_bundle do
   generate(:controller, 'pages', 'home', '--skip-routes', '--no-test-framework')
 
   # Rails money config
+  ########################################
   generate('money_rails:initializer')
   gsub_file('config/initializers/money.rb', /# config.default_currency = :usd/, "config.default_currency = :cny")
 
   # locales config
+  ########################################
   file 'config/initializers/locale.rb', <<~RUBY
   I18n.default_locale = :en
-  I18n.available_locales = [:en, :cn]
+  I18n.available_locales = [:en, 'zh-CN']
   RUBY
 
+  run 'rm  config/locales/en.yml'
+  run 'mv resources/locales/en.yml config/locales/en.yml'
+  run 'mv resources/locales/cn.yml config/locales/cn.yml'
+
+  environment 'config.i18n.fallbacks = true', env: 'development'
+
   # sidekiq as job adapter
+  ########################################
   environment 'config.active_job.queue_adapter = :sidekiq', env: 'development'
+  run 'mv resources/workers app/workers'
 
   # Aliyun
+  ########################################
+  rails_command 'active_storage:install'
   run 'rm config/storage.yml'
 
   if Rails.version < "6.1"
@@ -197,15 +239,19 @@ after_bundle do
   end
   file 'config/storage.yml', settings
 
-
-
-
   gsub_file('config/environments/development.rb', /config\.active_storage\.service.*/, 'config.active_storage.service = :aliyun')
   gsub_file('config/environments/production.rb', /config\.active_storage\.service.*/, 'config.active_storage.service = :aliyun')
 
   # Routes
   ########################################
   route "root to: 'pages#home'"
+  route <<~RUBY
+  namespace :api, defaults: { format: :json } do
+    namespace :v1 do
+      post 'users/wx_login', to: 'users#wx_login'
+    end
+  end
+  RUBY
 
   # Git ignore
   ########################################
@@ -219,32 +265,17 @@ after_bundle do
   # Devise install + user
   ########################################
   generate('devise:install')
-  generate('devise', 'User')
+  generate('devise', 'User mp_openid:string mp_session_key:string unionid:string')
 
-  # App controller
+  #Controlles
   ########################################
-  run 'rm app/controllers/application_controller.rb'
-  file 'app/controllers/application_controller.rb', <<~RUBY
-  class ApplicationController < ActionController::Base
-    #{  "protect_from_forgery with: :exception\n" if Rails.version < "5.2"}  before_action :authenticate_user!
-  end
-  RUBY
+  run 'rm -rf app/controllers'
+  run 'mv resources/controllers app/controllers'
 
   # migrate + devise views
   ########################################
   rails_command 'db:migrate'
   generate('devise:views')
-
-  # Pages Controller
-  ########################################
-  run 'rm app/controllers/pages_controller.rb'
-  file 'app/controllers/pages_controller.rb', <<~RUBY
-  class PagesController < ApplicationController
-    skip_before_action :authenticate_user!, only: [ :home ]
-    def home
-    end
-  end
-  RUBY
 
   # Environments
   ########################################
@@ -290,10 +321,14 @@ after_bundle do
   ########################################
   run 'curl -L https://raw.githubusercontent.com/lewagon/rails-templates/master/.rubocop.yml > .rubocop.yml'
 
+  # Remove resources folder
+  ########################################
+  run 'rm -rf resources'
+
   # Git
   ########################################
   git add: '.'
-  git commit: "-m 'Initial commit with eails_mp_setup config'"
+  git commit: "-m 'Initial commit with rails-wxmp-setup config'"
 
   # Fix puma config
   gsub_file('config/puma.rb', 'pidfile ENV.fetch("PIDFILE") { "tmp/pids/server.pid" }', '# pidfile ENV.fetch("PIDFILE") { "tmp/pids/server.pid" }')
