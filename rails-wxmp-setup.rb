@@ -135,7 +135,7 @@ markdown_file_content = <<-MARKDOWN
   api_key: [YOUR-API-KEY]
   jwt:
     token_secret_key: [YOUR-JWT-TOKEN]
-    expiration: TOKEN-EXPIRSTION-IN-SECONDS (Recommended: 900)]
+    expiration: [TOKEN-EXPIRATION-IN-SECONDS (Recommended: 900)]
   ```
 MARKDOWN
 file 'README.md', markdown_file_content, force: true
