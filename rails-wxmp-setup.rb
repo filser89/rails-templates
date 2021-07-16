@@ -32,6 +32,10 @@ inject_into_file 'Gemfile', before: 'group :development, :test do' do
 
   # models translation
   gem 'json_translate'
+
+  # serializer
+  gem 'active_model_serializers', '~> 0.10.0'
+
   RUBY
 end
 
@@ -175,6 +179,9 @@ after_bundle do
   ########################################
   generate('money_rails:initializer')
   gsub_file('config/initializers/money.rb', /# config.default_currency = :usd/, "config.default_currency = :cny")
+  gsub_file('config/initializers/money.rb', /# config.locale_backend = :i18n/, "config.locale_backend = :i18n")
+  gsub_file('config/initializers/money.rb', /# config.rounding_mode = BigDecimal::ROUND_HALF_UP/, "config.rounding_mode = BigDecimal::ROUND_HALF_UP")
+
 
   # locales config
   ########################################
@@ -211,10 +218,10 @@ after_bundle do
 
     aliyun:
       service: Aliyun
-    \s\saccess_key_id: <%= Rails.credentials.dig(:aliyun_oss, :access_key_id) %>
-    \s\saccess_key_secret: <%= Rails.credentials.dig(:aliyun_oss, :access_key_secret) %>
-    \s\sbucket: <%= Rails.credentials.dig(:aliyun_oss, :bucket) %>
-    \s\sendpoint: <%= Rails.credentials.dig(:aliyun_oss, :endpoint) %>
+    \s\saccess_key_id: <%= Rails.application.credentials.dig(:aliyun_oss, :access_key_id) %>
+    \s\saccess_key_secret: <%= Rails.application.credentials.dig(:aliyun_oss, :access_key_secret) %>
+    \s\sbucket: <%= Rails.application.credentials.dig(:aliyun_oss, :bucket) %>
+    \s\sendpoint: <%= Rails.application.credentials.dig(:aliyun_oss, :endpoint) %>
     \s\s# Bucket mode: [public, private], default: public
     \s\smode: "private"
     YAML
@@ -230,10 +237,10 @@ after_bundle do
 
     aliyun:
       service: Aliyun
-    \s\saccess_key_id: <%= Rails.credentials.dig(:aliyun_oss, :access_key_id) %>
-    \s\saccess_key_secret: <%= Rails.credentials.dig(:aliyun_oss, :access_key_secret) %>
-    \s\sbucket: <%= Rails.credentials.dig(:aliyun_oss, :bucket) %>
-    \s\sendpoint: <%= Rails.credentials.dig(:aliyun_oss, :endpoint) %>
+    \s\saccess_key_id: <%= Rails.application.credentials.dig(:aliyun_oss, :access_key_id) %>
+    \s\saccess_key_secret: <%= Rails.application.credentials.dig(:aliyun_oss, :access_key_secret) %>
+    \s\sbucket: <%= Rails.application.credentials.dig(:aliyun_oss, :bucket) %>
+    \s\sendpoint: <%= Rails.application.credentials.dig(:aliyun_oss, :endpoint) %>
     \s\spublic: false
     YAML
   end
@@ -241,6 +248,12 @@ after_bundle do
 
   gsub_file('config/environments/development.rb', /config\.active_storage\.service.*/, 'config.active_storage.service = :aliyun')
   gsub_file('config/environments/production.rb', /config\.active_storage\.service.*/, 'config.active_storage.service = :aliyun')
+
+  # Serializer
+  ########################################
+  generate('serializer', 'Application')
+  generate('serializer', 'User', 'mp_session_key', 'mp_openid', 'unionid')
+
 
   # Routes
   ########################################
@@ -281,6 +294,8 @@ after_bundle do
   ########################################
   environment 'config.action_mailer.default_url_options = { host: "http://localhost:3000" }', env: 'development'
   environment 'config.action_mailer.default_url_options = { host: "http://TODO_PUT_YOUR_DOMAIN_HERE" }', env: 'production'
+  environment "config.i18n.load_path += Dir[Rails.root.join('config', 'locales', '**', '*.{rb,yml}')]"
+  environment "config.time_zone = 'Beijing'"
 
 
   # Webpacker / Yarn
